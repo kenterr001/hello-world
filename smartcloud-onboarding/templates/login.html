@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block title %}Sign in{% endblock %}{% block bodyclass %}auth{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="auth-brand">
+    <svg viewBox="0 0 32 32" width="40" height="40" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M9 21a5 5 0 0 1 1-9.9A7 7 0 0 1 23 13a4 4 0 0 1 0 8z" fill="#fff"/></svg>
+    <div><h1>Smart Cloud</h1><p>Sales &amp; Onboarding Portal</p></div>
+  </div>
+  <form method="post" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Work email<input type="email" name="email" required autofocus autocomplete="username"></label>
+    <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+    <button class="btn primary block">Sign in</button>
+  </form>
+  <p class="muted small">Restricted to Melita and Smart Technologies staff. Access is by invitation from a portal administrator.</p>
+</div>
+{% endblock %}

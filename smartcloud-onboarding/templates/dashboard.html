@@ -1,0 +1,121 @@
+{% extends "base.html" %}{% from "_macros.html" import stage_pill, svc, prob, progress %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Dashboard</h1><p class="muted">Sales pipeline and onboarding status across Melita and Smart Technologies.</p></div>
+  <div class="actions">
+    <a class="btn ghost" href="{{ url_for('export_csv') }}">Export CSV</a>
+    {% if can('edit_deal') %}<a class="btn primary" href="{{ url_for('deal_new') }}">+ New lead</a>{% endif %}
+  </div>
+</div>
+
+<section class="kpis">
+  <div class="kpi"><span>Open pipeline (TCV)</span><strong>{{ kpi.pipeline_tcv|money }}</strong><small>{{ kpi.pipeline_count }} leads in pre-sales · {{ kpi.pipeline_mrc|money }}/mo</small></div>
+  <div class="kpi"><span>Weighted pipeline</span><strong>{{ kpi.weighted|money }}</strong><small>TCV × probability · avg {{ kpi.avg_prob }}%</small></div>
+  <div class="kpi"><span>Won – monthly recurring</span><strong>{{ kpi.won_mrc|money }}</strong><small>across confirmed deals</small></div>
+  <div class="kpi"><span>In delivery</span><strong>{{ kpi.in_delivery }}</strong><small>{{ kpi.awaiting_review }} awaiting technical review · {{ kpi.live }} live</small></div>
+</section>
+
+<section class="card">
+  <h2>Where every deal is</h2>
+  <ol class="flow">
+    {% for s in stage_stats %}
+    <li><a href="{{ url_for('dashboard', stage=s.key) }}#deals" class="flow-step st-{{ s.key }} {{ 'on' if f.stage==s.key }}">
+      <span class="flow-n">{{ s.count }}</span>
+      <span class="flow-l">{{ s.label }}</span>
+      <small>{{ s.tcv|money }} TCV</small>
+    </a></li>
+    {% endfor %}
+  </ol>
+  <p class="muted small">Pre-Sales → deal confirmed &amp; technical sheet submitted → Technical Review → Onboarding (provisioning) → Finalization (service handed over, client connecting) → Networking Call → Live.</p>
+</section>
+
+<div class="grid2">
+  <section class="card">
+    <h2>Pre-sales pipeline by service</h2>
+    {% set maxv = (service_stats|map(attribute='tcv')|max) or 1 %}
+    <div class="bars">
+    {% for s in service_stats %}
+      <div class="bar-row">
+        <span class="bar-label">{{ svc(s.label) }} <small>{{ s.count }}</small></span>
+        <span class="bar-track"><i class="bar-tcv" style="width:{{ (100*s.tcv/maxv)|round(1) }}%"></i><i class="bar-w" style="width:{{ (100*s.weighted/maxv)|round(1) }}%"></i></span>
+        <span class="bar-val">{{ s.tcv|money }}<small>{{ s.weighted|money }} weighted</small></span>
+      </div>
+    {% endfor %}
+    </div>
+    <p class="legend small"><i class="lg-tcv"></i> Total contract value <i class="lg-w"></i> Weighted by probability</p>
+  </section>
+  <section class="card">
+    <h2>By originating partner</h2>
+    {% set maxp = (partner_stats|map(attribute='tcv')|max) or 1 %}
+    <div class="bars">
+    {% for s in partner_stats %}
+      <div class="bar-row">
+        <span class="bar-label">{{ s.label }} <small>{{ s.count }}</small></span>
+        <span class="bar-track"><i class="bar-tcv" style="width:{{ (100*s.tcv/maxp)|round(1) }}%"></i></span>
+        <span class="bar-val">{{ s.tcv|money }}</span>
+      </div>
+    {% endfor %}
+    </div>
+    <p class="muted small">All active deals (pre-sales and in delivery), total contract value.</p>
+  </section>
+</div>
+
+{% if delivery %}
+<section class="card">
+  <h2>Onboarding in progress</h2>
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Ref</th><th>Customer</th><th>Service</th><th>Stage</th><th>Days in stage</th><th>Checklist</th><th>Networking call</th><th class="r">MRC</th></tr></thead>
+    <tbody>
+    {% for d in delivery|sort(attribute='stage_changed_at') %}
+      <tr>
+        <td class="mono"><a href="{{ url_for('deal_view', deal_id=d.id) }}">{{ ref(d) }}</a></td>
+        <td><a href="{{ url_for('deal_view', deal_id=d.id) }}"><strong>{{ d.customer }}</strong></a><br><small class="muted">{{ d.partner }} · {{ d.owner_name or '—' }}</small></td>
+        <td>{{ svc(d.service_type) }}</td>
+        <td>{{ stage_pill(d.stage) }}</td>
+        {% set ds = d.stage_changed_at|days_since %}
+        <td><span class="{{ 'warn' if ds > 7 }}">{{ ds }}d</span></td>
+        <td>{% if d.stage == 'tech_review' %}<span class="muted small">Sheet {{ d.sheet_status|replace('_',' ') }}</span>{% else %}{{ progress(d.tasks_done, d.tasks_total) }}{% endif %}</td>
+        <td>{{ d.networking_call_at|dt if d.networking_call_at else '—' }}</td>
+        <td class="r">{{ d.value_mrc|money }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+
+<section class="card" id="deals">
+  <div class="card-head">
+    <h2>{% if filtering %}Filtered deals{% else %}All active deals{% endif %} <small class="muted">({{ deals|length }})</small></h2>
+    <form class="filters" method="get" action="{{ url_for('dashboard') }}#deals">
+      <input type="search" name="q" value="{{ f.q }}" placeholder="Search customer, ref, notes…">
+      <select name="stage"><option value="">All stages</option>{% for k,l in STAGES %}<option value="{{ k }}" {{ 'selected' if f.stage==k }}>{{ l }}</option>{% endfor %}<option value="lost" {{ 'selected' if f.stage=='lost' }}>Lost</option></select>
+      <select name="service"><option value="">All services</option>{% for s in cat.service_types %}<option {{ 'selected' if f.service==s }}>{{ s }}</option>{% endfor %}</select>
+      <select name="partner"><option value="">Both partners</option>{% for p in cat.partners %}<option {{ 'selected' if f.partner==p }}>{{ p }}</option>{% endfor %}</select>
+      <select name="owner"><option value="">All owners</option>{% for o in owners %}<option value="{{ o.id }}" {{ 'selected' if f.owner==o.id|string }}>{{ o.name }}</option>{% endfor %}</select>
+      <button class="btn sm">Filter</button>{% if filtering %}<a class="btn ghost sm" href="{{ url_for('dashboard') }}#deals">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Ref</th><th>Customer / opportunity</th><th>Service</th><th>Stage</th><th>Probability</th><th class="r">MRC</th><th class="r">TCV</th><th>Expected close</th><th>Next step / info</th></tr></thead>
+    <tbody>
+    {% for d in deals %}
+      <tr>
+        <td class="mono"><a href="{{ url_for('deal_view', deal_id=d.id) }}">{{ ref(d) }}</a></td>
+        <td><a href="{{ url_for('deal_view', deal_id=d.id) }}"><strong>{{ d.customer }}</strong></a><br><small class="muted">{{ d.title or '' }}{% if d.title %} · {% endif %}{{ d.partner }} · {{ d.owner_name or '—' }}</small></td>
+        <td>{{ svc(d.service_type) }}</td>
+        <td>{{ stage_pill(d.stage) }}</td>
+        <td>{{ prob(d.probability) }}</td>
+        <td class="r">{{ d.value_mrc|money }}</td>
+        <td class="r"><strong>{{ tcv(d)|money }}</strong></td>
+        <td>{{ d.expected_close|dt if d.expected_close else '—' }}</td>
+        <td class="clip">{{ d.next_step or d.lost_reason or '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="9" class="empty">No deals match. {% if can('edit_deal') %}<a href="{{ url_for('deal_new') }}">Create the first lead</a>.{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

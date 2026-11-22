@@ -1,0 +1,13 @@
+{# macros used by the form #}
+{% macro f(name, label, s, type='text', cls='', req=False, ph='') -%}
+<label class="{{ cls }}">{{ label }}{% if req %} *{% endif %}<input type="{{ type }}" name="{{ name }}" value="{{ s.get(name, '') }}" {{ 'data-req' if req }} placeholder="{{ ph }}"></label>
+{%- endmacro %}
+{% macro sel(name, label, s, opts, cls='', req=False) -%}
+<label class="{{ cls }}">{{ label }}{% if req %} *{% endif %}<select name="{{ name }}"><option value="">Select…</option>{% for o in opts %}<option {{ 'selected' if s.get(name,'')|string==o|string }}>{{ o }}</option>{% endfor %}</select></label>
+{%- endmacro %}
+{% macro ta(name, label, s, cls='span4', rows=3, ph='', req=False) -%}
+<label class="{{ cls }}">{{ label }}{% if req %} *{% endif %}<textarea name="{{ name }}" rows="{{ rows }}" placeholder="{{ ph }}">{{ s.get(name, '') }}</textarea></label>
+{%- endmacro %}
+{% macro yn(name, label, s, cls='') -%}
+<label class="{{ cls }}">{{ label }}<select name="{{ name }}"><option value="">—</option>{% for o in ['Yes','No','To confirm'] %}<option {{ 'selected' if s.get(name)==o }}>{{ o }}</option>{% endfor %}</select></label>
+{%- endmacro %}

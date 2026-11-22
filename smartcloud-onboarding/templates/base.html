@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>{% block title %}Smart Cloud Portal{% endblock %} · Smart Cloud</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b5f7a'/%3E%3Cpath d='M9 21a5 5 0 0 1 1-9.9A7 7 0 0 1 23 13a4 4 0 0 1 0 8z' fill='white'/%3E%3C/svg%3E">
+</head>
+<body class="{% block bodyclass %}{% endblock %}" data-currency="{{ CURRENCY }}">
+{% if g.user %}
+<header class="topbar no-print">
+  <a class="brand" href="{{ url_for('dashboard') }}">
+    <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M9 21a5 5 0 0 1 1-9.9A7 7 0 0 1 23 13a4 4 0 0 1 0 8z" fill="#fff"/></svg>
+    <span><strong>Smart Cloud</strong> <small>Sales &amp; Onboarding</small></span>
+  </a>
+  <nav>
+    {% set ep = request.endpoint %}
+    <a href="{{ url_for('dashboard') }}" class="{{ 'on' if ep=='dashboard' }}">Dashboard</a>
+    <a href="{{ url_for('board') }}" class="{{ 'on' if ep=='board' }}">Pipeline board</a>
+    <a href="{{ url_for('review_queue') }}" class="{{ 'on' if ep=='review_queue' }}">Technical review</a>
+    <a href="{{ url_for('process') }}" class="{{ 'on' if ep=='process' }}">Process</a>
+    {% if g.user.role == 'admin' %}
+    <a href="{{ url_for('admin_users') }}" class="{{ 'on' if ep=='admin_users' }}">Users</a>
+    <a href="{{ url_for('admin_catalogue') }}" class="{{ 'on' if ep=='admin_catalogue' }}">Catalogue</a>
+    {% endif %}
+  </nav>
+  <div class="me">
+    <span title="{{ g.user.email }}">{{ g.user.name }} <small>{{ g.user.company }} · {{ ROLES[g.user.role] }}</small></span>
+    <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="btn ghost sm">Sign out</button></form>
+  </div>
+</header>
+{% endif %}
+<main class="{% block mainclass %}wrap{% endblock %}">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+  {% if msgs %}<div class="flashes no-print">{% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="foot no-print">Smart Cloud — a joint venture of Melita &amp; Smart Technologies · Internal use only · Data hosted on Smart Cloud</footer>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

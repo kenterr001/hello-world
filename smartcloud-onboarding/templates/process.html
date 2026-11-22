@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Process{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Sales &amp; onboarding process</h1><p class="muted">How a Smart Cloud deal moves from first conversation to a connected, live customer. Shared by Melita and Smart Technologies. Target times are proposals for the teams to agree.</p></div>
+<button class="btn ghost no-print" data-print>Print / save PDF</button></div>
+
+<ol class="process">
+  <li class="st-presales"><div class="p-head"><span>1</span><h2>Pre-Sales</h2><em>Owner: Sales (Melita or Smart Technologies)</em></div>
+    <p>A lead is registered in the portal as soon as there is a real opportunity.</p>
+    <ul><li>Record customer, contact, <strong>service type</strong> (VPS, Backup, VPS + Backup, Bespoke), originating partner and owner.</li>
+      <li>Record <strong>monthly recurring value, one-off value, term</strong> and <strong>probability %</strong>. The dashboard calculates total and weighted contract value.</li>
+      <li>Keep <strong>next step</strong>, notes and comments current; update probability after every customer interaction.</li></ul>
+    <p class="exit"><strong>Exit:</strong> customer confirms (signed order / PO). Sales completes the technical onboarding sheet and submits it.</p></li>
+
+  <li class="st-tech_review"><div class="p-head"><span>2</span><h2>Technical Review</h2><em>Owner: Technical team · Target: 2 working days</em></div>
+    <p>Submitting the sheet marks the deal as won (100%), locks the sheet and notifies the technical team.</p>
+    <ul><li>Technical team checks the sheet against the Smart Cloud / Melita Business catalogue and capacity.</li>
+      <li><strong>Approve</strong> → onboarding starts and its checklist is created automatically.</li>
+      <li><strong>Request changes</strong> → sheet goes back to sales with comments; sales updates and resubmits (new version).</li></ul></li>
+
+  <li class="st-onboarding"><div class="p-head"><span>3</span><h2>Onboarding</h2><em>Owner: Technical team · Target: 5 working days (standard), agreed date (bespoke)</em></div>
+    <ul>{% for t in cat.checklists.onboarding %}<li>{{ t }}</li>{% endfor %}</ul>
+    <p class="exit"><strong>Exit:</strong> all checklist items complete → move to Finalization.</p></li>
+
+  <li class="st-finalization"><div class="p-head"><span>4</span><h2>Finalization</h2><em>Owner: Technical team with Sales · Target: 3 working days</em></div>
+    <p>The service has been handed over to the client; the client only needs to connect.</p>
+    <ul>{% for t in cat.checklists.finalization %}<li>{{ t }}</li>{% endfor %}</ul>
+    <p class="exit"><strong>Exit:</strong> client connected and networking call booked → move to Networking Call.</p></li>
+
+  <li class="st-networking"><div class="p-head"><span>5</span><h2>Networking Call</h2><em>Owner: Technical / network engineer · Target: within 5 working days of finalization</em></div>
+    <p>Call with the customer's IT to set up connectivity (VPN / private link / firewall), using section 5 of the onboarding sheet.</p>
+    <ul>{% for t in cat.checklists.networking %}<li>{{ t }}</li>{% endfor %}</ul>
+    <p class="exit"><strong>Exit:</strong> client sign-off and billing active → Live.</p></li>
+
+  <li class="st-live"><div class="p-head"><span>6</span><h2>Live</h2><em>Owner: Support / account management</em></div>
+    <p>The deal is closed in the portal. Changes and incidents go through the normal support process.</p></li>
+</ol>
+
+<section class="card">
+  <h2>Who does what</h2>
+  <div class="table-wrap"><table class="tbl raci">
+    <thead><tr><th>Activity</th><th>Sales</th><th>Technical</th><th>Admin</th></tr></thead>
+    <tbody>
+      <tr><td>Register and update leads</td><td>Responsible</td><td>Informed</td><td>—</td></tr>
+      <tr><td>Complete &amp; submit onboarding sheet</td><td>Responsible</td><td>Consulted</td><td>—</td></tr>
+      <tr><td>Review / approve sheet</td><td>Informed</td><td>Responsible</td><td>—</td></tr>
+      <tr><td>Provision, configure, QA</td><td>Informed</td><td>Responsible</td><td>—</td></tr>
+      <tr><td>Hand over credentials to client</td><td>Consulted</td><td>Responsible</td><td>—</td></tr>
+      <tr><td>Networking call &amp; sign-off</td><td>Informed</td><td>Responsible</td><td>—</td></tr>
+      <tr><td>Users, catalogue, checklists</td><td>—</td><td>—</td><td>Responsible</td></tr>
+    </tbody></table></div>
+  <p class="small muted">Lost deals: sales marks the lead as lost with a reason; it can be re-opened later. Every change is recorded in the deal's activity log.</p>
+</section>
+<p class="no-print"><a class="btn" href="{{ url_for('sheet_blank') }}">Open blank onboarding sheet (printable)</a></p>
+{% endblock %}

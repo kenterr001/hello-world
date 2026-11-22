@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% from "_sheet_sections.html" import SECTIONS %}
+{% block title %}Blank onboarding sheet{% endblock %}
+{% block content %}
+<div class="page-head no-print"><div><h1>Blank onboarding sheet</h1><p class="muted">Printable version for customer meetings. Enter the answers into the portal afterwards.</p></div>
+<button class="btn primary" data-print>Print / save PDF</button></div>
+<article class="doc blank">
+  <header class="doc-head">
+    <div class="doc-brand"><svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M9 21a5 5 0 0 1 1-9.9A7 7 0 0 1 23 13a4 4 0 0 1 0 8z" fill="#fff"/></svg>
+      <div><strong>Smart Cloud</strong><small>Technical Onboarding Sheet</small></div></div>
+    <table class="doc-meta"><tr><th>Ref</th><td></td><th>Date</th><td></td></tr><tr><th>Customer</th><td></td><th>Sales owner</th><td></td></tr><tr><th>Partner</th><td>☐ Melita &nbsp; ☐ Smart Technologies</td><th>Services</th><td>☐ VPS &nbsp; ☐ Backup &nbsp; ☐ Bespoke</td></tr></table>
+  </header>
+  {% for title, need, fields in SECTIONS %}
+  <section class="doc-sec">
+    <h2>{{ title }}</h2>
+    {% if need == 'vps' %}
+    <table class="tbl doc-tbl lined"><thead><tr><th>Hostname</th><th>Package</th><th>vCPU</th><th>RAM GB</th><th>Disk GB</th><th>Storage tier</th><th>Operating system</th><th>Licence</th><th>Qty</th><th>Role</th></tr></thead>
+    <tbody>{% for i in range(4) %}<tr>{% for j in range(10) %}<td>&nbsp;</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+    <p class="small muted">Packages: {% for p in cat.vps_packages %}{{ p.name }}{% if p.vcpu %} ({{ p.vcpu }} vCPU / {{ p.ram_gb }} GB / {{ p.storage_gb }} GB){% endif %}{{ '; ' if not loop.last }}{% endfor %}</p>
+    {% endif %}
+    <table class="blank-tbl">{% for k, label in fields %}<tr><th>{{ label }}</th><td></td></tr>{% endfor %}</table>
+  </section>
+  {% endfor %}
+  <section class="doc-sec"><h2>Sign-off</h2><table class="blank-tbl"><tr><th>Sales (name / date)</th><td></td></tr><tr><th>Customer (name / date)</th><td></td></tr><tr><th>Technical review (name / date)</th><td></td></tr></table></section>
+  <footer class="doc-foot">Confidential – Smart Cloud (Melita &amp; Smart Technologies).</footer>
+</article>
+{% endblock %}

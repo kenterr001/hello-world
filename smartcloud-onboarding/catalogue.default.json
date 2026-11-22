@@ -1,0 +1,66 @@
+{
+  "_note": "PLACEHOLDER CATALOGUE - amend in Admin > Catalogue so it matches the packages published on Smart Cloud and on the Melita Business cloud hosting page.",
+  "partners": ["Melita", "Smart Technologies"],
+  "service_types": ["VPS", "Backup", "VPS + Backup", "Bespoke"],
+  "lead_sources": ["Existing customer", "Inbound enquiry", "Referral", "Partner (Melita)", "Partner (Smart Technologies)", "Tender / RFP", "Event", "Other"],
+  "vps_packages": [
+    {"name": "VPS Small",  "vcpu": 2,  "ram_gb": 4,  "storage_gb": 80},
+    {"name": "VPS Medium", "vcpu": 4,  "ram_gb": 8,  "storage_gb": 160},
+    {"name": "VPS Large",  "vcpu": 8,  "ram_gb": 16, "storage_gb": 320},
+    {"name": "VPS XL",     "vcpu": 16, "ram_gb": 32, "storage_gb": 640},
+    {"name": "Custom / Bespoke", "vcpu": null, "ram_gb": null, "storage_gb": null}
+  ],
+  "storage_tiers": ["SSD", "NVMe", "Standard (HDD)"],
+  "operating_systems": [
+    "Windows Server 2022 Standard",
+    "Windows Server 2019 Standard",
+    "Ubuntu Server 24.04 LTS",
+    "Ubuntu Server 22.04 LTS",
+    "Debian 12",
+    "Rocky Linux 9",
+    "AlmaLinux 9",
+    "Red Hat Enterprise Linux 9 (BYOL)",
+    "Customer-supplied image",
+    "Other (specify)"
+  ],
+  "management_levels": ["Unmanaged (customer manages OS)", "Managed OS", "Fully managed (OS + applications)"],
+  "backup_products": [
+    "VPS backup (Smart Cloud snapshots)",
+    "Off-site backup (Veeam Cloud Connect)",
+    "Server / workstation agent backup",
+    "Microsoft 365 backup",
+    "Disaster recovery / replication",
+    "Other (specify)"
+  ],
+  "backup_sources": ["Smart Cloud VPS", "Customer on-premises", "Other cloud provider", "Microsoft 365", "Mixed"],
+  "retention_options": ["7 days", "14 days", "30 days", "30 days + 12 monthly", "30 days + 12 monthly + 7 yearly", "Custom (specify)"],
+  "backup_frequencies": ["Daily", "Twice daily", "Hourly", "Weekly", "Custom (specify)"],
+  "connectivity_options": ["Public Internet only", "Site-to-site IPsec VPN", "Client / remote-access VPN", "Melita private connection / leased line", "MPLS / existing WAN", "To be discussed on networking call"],
+  "sla_levels": ["Standard", "Enhanced", "Premium / bespoke"],
+  "contract_terms": [12, 24, 36, 48, 60],
+  "checklists": {
+    "onboarding": [
+      "Customer account created in billing / CRM",
+      "VPS(s) provisioned as per technical sheet",
+      "Public IPs assigned and reverse DNS set",
+      "Firewall rules applied",
+      "Backup repository / jobs configured",
+      "Monitoring and alerting enabled",
+      "Customer portal credentials created",
+      "Internal QA completed (incl. test restore where backup applies)"
+    ],
+    "finalization": [
+      "Welcome pack and credentials sent to client",
+      "Client confirmed receipt of credentials",
+      "Client successfully connected to service",
+      "Networking call scheduled with client"
+    ],
+    "networking": [
+      "Networking call held with client",
+      "VPN / private connectivity configured",
+      "End-to-end connectivity tested with client",
+      "Client handover sign-off received",
+      "Billing activated"
+    ]
+  }
+}

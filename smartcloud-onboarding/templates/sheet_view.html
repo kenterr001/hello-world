@@ -1,0 +1,62 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf, svc %}{% from "_sheet_sections.html" import SECTIONS %}
+{% block title %}Technical sheet – {{ d.customer }}{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+  <div>
+    <p class="crumb"><a href="{{ url_for('dashboard') }}">Dashboard</a> / <a href="{{ url_for('deal_view', deal_id=d.id) }}">{{ d.customer }}</a> / Technical sheet</p>
+    <h1>Technical onboarding sheet</h1>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" data-print>Print / save PDF</button>
+    {% if can('fill_sheet') and sheet.status in ('draft','changes_requested') %}<a class="btn" href="{{ url_for('sheet_edit', deal_id=d.id) }}">Edit sheet</a>{% endif %}
+  </div>
+</div>
+
+<article class="doc">
+  <header class="doc-head">
+    <div class="doc-brand"><svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M9 21a5 5 0 0 1 1-9.9A7 7 0 0 1 23 13a4 4 0 0 1 0 8z" fill="#fff"/></svg>
+      <div><strong>Smart Cloud</strong><small>Technical Onboarding Sheet</small></div></div>
+    <table class="doc-meta">
+      <tr><th>Ref</th><td class="mono">{{ ref(d) }}</td><th>Status</th><td><span class="pill sh-{{ sheet.status }}">{{ sheet.status|replace('_',' ')|title }}</span> v{{ sheet.version }}</td></tr>
+      <tr><th>Customer</th><td>{{ d.customer }}</td><th>Service</th><td>{{ d.service_type }}</td></tr>
+      <tr><th>Partner / owner</th><td>{{ d.partner }} · {{ d.owner_name or '—' }}</td><th>Submitted</th><td>{{ sheet.submitted_name or '—' }} {{ sheet.submitted_at|dt if sheet.submitted_at else '' }}</td></tr>
+      {% if sheet.reviewed_at %}<tr><th>Reviewed</th><td colspan="3">{{ sheet.reviewed_name }} {{ sheet.reviewed_at|dt }}{% if sheet.review_notes %} — {{ sheet.review_notes }}{% endif %}</td></tr>{% endif %}
+    </table>
+  </header>
+  <p><strong>Services:</strong> {% for x in s.get('services', []) %}<span class="tag">{{ {'vps':'VPS','backup':'Backup','bespoke':'Bespoke'}[x] }}</span> {% else %}—{% endfor %}</p>
+
+  {% for title, need, fields in SECTIONS %}
+    {% if (not need or need in s.get('services', [])) and (has_any(s, fields) or (need == 'vps' and s.get('vps'))) %}
+    <section class="doc-sec">
+      <h2>{{ title }}</h2>
+      {% if need == 'vps' and s.get('vps') %}
+      <table class="tbl doc-tbl">
+        <thead><tr><th>Hostname</th><th>Package</th><th>vCPU</th><th>RAM</th><th>Disk</th><th>Storage</th><th>OS</th><th>Licence</th><th>Qty</th><th>Role</th></tr></thead>
+        <tbody>{% for r in s.vps %}<tr><td class="mono">{{ r.hostname }}</td><td>{{ r.package }}</td><td>{{ r.vcpu }}</td><td>{{ r.ram_gb }} GB</td><td>{{ r.storage_gb }} GB</td><td>{{ r.storage_tier }}</td><td>{{ r.os }}</td><td>{{ r.licence }}</td><td>{{ r.qty }}</td><td>{{ r.role }}</td></tr>{% endfor %}</tbody>
+        <tfoot><tr><th colspan="2">Totals ({{ totals.servers|int }} servers, incl. qty)</th>
+          <td>{{ totals.vcpu|int }}</td><td>{{ totals.ram_gb|int }} GB</td><td>{{ totals.storage_gb|int }} GB</td><td colspan="5"></td></tr></tfoot>
+      </table>
+      {% endif %}
+      <dl class="doc-dl">
+        {% for k, label in fields %}{% if s.get(k) %}<dt>{{ label }}</dt><dd class="pre">{{ s.get(k) }}</dd>{% endif %}{% endfor %}
+      </dl>
+    </section>
+    {% endif %}
+  {% endfor %}
+  <footer class="doc-foot">Confidential – Smart Cloud (Melita &amp; Smart Technologies). Generated {{ sheet.updated_at|dt }}.</footer>
+</article>
+
+{% if sheet.status == 'submitted' and can('review') %}
+<section class="card no-print" id="review">
+  <h2>Technical review</h2>
+  <p>Approve to start onboarding (the onboarding checklist is created automatically), or send the sheet back to sales with what needs to change.</p>
+  <form method="post" action="{{ url_for('sheet_review', deal_id=d.id) }}" class="stack">{{ csrf() }}
+    <textarea name="notes" rows="3" placeholder="Review notes (required when requesting changes)"></textarea>
+    <div class="actions">
+      <button class="btn danger" name="decision" value="changes">Request changes</button>
+      <button class="btn primary" name="decision" value="approve">Approve &amp; start onboarding</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf, svc %}{% from "_sheet_fields.html" import f, sel, ta, yn %}
+{% block title %}Onboarding sheet – {{ d.customer }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="crumb"><a href="{{ url_for('dashboard') }}">Dashboard</a> / <a href="{{ url_for('deal_view', deal_id=d.id) }}">{{ d.customer }}</a> / Technical onboarding sheet</p>
+    <h1>Technical onboarding sheet</h1>
+    <p class="muted"><span class="mono">{{ ref(d) }}</span> · {{ d.customer }} · {{ svc(d.service_type) }} · Fields marked * are required to submit. Save a draft at any time.</p>
+  </div>
+</div>
+{% if sheet and sheet.status == 'changes_requested' %}<div class="flash error">Technical team requested changes: {{ sheet.review_notes }}</div>{% endif %}
+
+<form method="post" class="sheet-form" id="sheetForm">
+{{ csrf() }}
+<nav class="sheet-nav no-print">
+  <a href="#s1">1 Customer</a><a href="#s2">2 Services</a><a href="#s3" data-svc="vps">3 VPS</a><a href="#s4" data-svc="backup">4 Backup</a><a href="#s5">5 Networking</a><a href="#s6">6 Bespoke &amp; compliance</a><a href="#s7">7 Handover</a><a href="#s8">8 Commercials</a>
+</nav>
+
+<section class="card" id="s1">
+  <h2>1 · Customer &amp; contacts</h2>
+  <div class="fgrid">
+    {{ f('legal_name', 'Legal company name', s, cls='span2', req=True) }}
+    {{ f('company_reg', 'Company registration no.', s) }}
+    {{ f('vat_no', 'VAT no.', s) }}
+    {{ ta('billing_address', 'Registered / billing address', s, rows=2) }}
+    <h3 class="span4">Billing contact</h3>
+    {{ f('billing_name', 'Name', s) }}{{ f('billing_email', 'Email', s, type='email', req=True) }}{{ f('billing_phone', 'Phone', s) }}{{ f('po_number', 'PO / reference no.', s) }}
+    <h3 class="span4">Primary technical contact</h3>
+    {{ f('tech_name', 'Name', s, req=True) }}{{ f('tech_email', 'Email', s, type='email', req=True) }}{{ f('tech_phone', 'Phone', s, req=True) }}<span></span>
+    <h3 class="span4">Secondary / escalation contact</h3>
+    {{ f('alt_name', 'Name', s) }}{{ f('alt_email', 'Email', s, type='email') }}{{ f('alt_phone', 'Phone', s) }}
+  </div>
+</section>
+
+<section class="card" id="s2">
+  <h2>2 · Services &amp; contract</h2>
+  <div class="svc-pick">
+    {% for k, l, hint in [('vps','VPS','Virtual private servers on Smart Cloud'),('backup','Backup','Backup / DR services'),('bespoke','Bespoke','Requirements outside the standard catalogue')] %}
+    <label class="svc-card"><input type="checkbox" name="services" value="{{ k }}" {{ 'checked' if k in s.get('services', []) }} data-toggle="{{ k }}"><span><strong>{{ l }}</strong><small>{{ hint }}</small></span></label>
+    {% endfor %}
+  </div>
+  <div class="fgrid">
+    {{ f('requested_start', 'Requested service start date', s, type='date', req=True) }}
+    {{ sel('contract_term', 'Contract term (months)', s, cat.contract_terms, req=True) }}
+    {{ sel('sla_level', 'SLA level', s, cat.sla_levels) }}
+  </div>
+</section>
+
+<section class="card" id="s3" data-section="vps">
+  <h2>3 · VPS requirements</h2>
+  <p class="muted small">One row per server. Choosing a package fills the standard specification; change any value for a custom build.</p>
+  <div class="table-wrap"><table class="tbl vps-tbl" id="vpsTable" data-packages='{{ cat.vps_packages|tojson }}'>
+    <thead><tr><th>Hostname</th><th>Package</th><th>vCPU</th><th>RAM GB</th><th>Disk GB</th><th>Storage</th><th>Operating system</th><th>Licence</th><th>Qty</th><th>Role / purpose</th><th></th></tr></thead>
+    <tbody>
+    {% for r in (s.get('vps') or [{}]) %}
+      <tr>
+        <td><input name="vps_hostname" value="{{ r.hostname }}" placeholder="app01"></td>
+        <td><select name="vps_package" class="pkg"><option value="">—</option>{% for p in cat.vps_packages %}<option {{ 'selected' if r.package==p.name }}>{{ p.name }}</option>{% endfor %}</select></td>
+        <td><input name="vps_vcpu" type="number" min="1" value="{{ r.vcpu }}" class="n"></td>
+        <td><input name="vps_ram_gb" type="number" min="1" value="{{ r.ram_gb }}" class="n"></td>
+        <td><input name="vps_storage_gb" type="number" min="10" value="{{ r.storage_gb }}" class="n"></td>
+        <td><select name="vps_storage_tier">{% for t in cat.storage_tiers %}<option {{ 'selected' if r.storage_tier==t }}>{{ t }}</option>{% endfor %}</select></td>
+        <td><select name="vps_os"><option value="">—</option>{% for o in cat.operating_systems %}<option {{ 'selected' if r.os==o }}>{{ o }}</option>{% endfor %}</select></td>
+        <td><select name="vps_licence">{% for o in ['Provided by Smart Cloud','Customer BYOL','N/A (open source)'] %}<option {{ 'selected' if r.licence==o }}>{{ o }}</option>{% endfor %}</select></td>
+        <td><input name="vps_qty" type="number" min="1" value="{{ r.qty or 1 }}" class="n"></td>
+        <td><input name="vps_role" value="{{ r.role }}" placeholder="Web, DB, ERP…"></td>
+        <td><button type="button" class="btn ghost sm del-row" aria-label="Remove row">✕</button></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <button type="button" class="btn sm" id="addVps">+ Add server</button>
+  <div class="fgrid mt">
+    {{ sel('vps_management', 'Management level', s, cat.management_levels) }}
+    {{ f('vps_public_ipv4', 'Public IPv4 addresses (total)', s, type='number') }}
+    {{ yn('vps_ipv6', 'IPv6 required', s) }}
+    {{ yn('vps_private_network', 'Private network between VPSs', s) }}
+    {{ yn('vps_monitoring', 'Monitoring & alerting', s) }}
+    {{ yn('vps_av', 'Antivirus / endpoint protection', s) }}
+    {{ yn('vps_snapshots', 'Scheduled snapshots', s) }}
+    {{ ta('vps_notes', 'Other VPS requirements (software, migration of existing servers, GPUs, etc.)', s) }}
+  </div>
+</section>
+
+<section class="card" id="s4" data-section="backup">
+  <h2>4 · Backup requirements</h2>
+  <div class="fgrid">
+    {{ sel('bk_product', 'Backup product', s, cat.backup_products, cls='span2', req=True) }}
+    {{ sel('bk_source', 'What is being backed up', s, cat.backup_sources) }}
+    {{ f('bk_protected_count', 'No. of servers / VMs / users protected', s, type='number') }}
+    {{ f('bk_quota_tb', 'Storage quota (TB)', s, type='number', req=True) }}
+    {{ sel('bk_frequency', 'Backup frequency', s, cat.backup_frequencies) }}
+    {{ sel('bk_retention', 'Retention policy', s, cat.retention_options, cls='span2', req=True) }}
+    {{ f('bk_window', 'Preferred backup window', s, ph='e.g. 22:00–05:00') }}
+    {{ f('bk_rpo', 'Target RPO', s, ph='e.g. 24h') }}
+    {{ f('bk_rto', 'Target RTO', s, ph='e.g. 4h') }}
+    {{ yn('bk_encryption', 'Encryption at rest required', s) }}
+    {{ yn('bk_immutable', 'Immutable / ransomware-protected copies', s) }}
+    {{ yn('bk_restore_test', 'Initial test restore required', s) }}
+    {{ ta('bk_notes', 'Other backup details (applications, databases, exclusions, seeding by disk, etc.)', s) }}
+  </div>
+</section>
+
+<section class="card" id="s5">
+  <h2>5 · Networking &amp; security</h2>
+  <p class="muted small">Captured now so the networking call after finalization is short. Anything unknown can be marked “To be discussed on networking call”.</p>
+  <div class="fgrid">
+    {{ sel('net_connectivity', 'Connectivity to Smart Cloud', s, cat.connectivity_options, cls='span2', req=True) }}
+    {{ f('net_bandwidth', 'Expected bandwidth / traffic', s) }}
+    {{ yn('net_firewall_managed', 'Firewall managed by Smart Cloud', s) }}
+    {{ f('net_customer_ips', 'Customer public IPs to whitelist', s, cls='span2', ph='e.g. 203.0.113.10/32') }}
+    {{ f('net_vpn_peer', 'VPN peer device / public IP', s, cls='span2', ph='e.g. FortiGate 60F, 198.51.100.4') }}
+    {{ f('net_subnets', 'Customer internal subnets (avoid overlap)', s, cls='span2', ph='e.g. 10.10.0.0/16') }}
+    {{ f('net_ports', 'Ports / services to expose', s, cls='span2', ph='e.g. 443/tcp public, RDP via VPN only') }}
+    {{ f('net_dns', 'Domains / DNS changes', s, cls='span2') }}
+    {{ f('net_call_windows', 'Preferred times for networking call', s, cls='span2') }}
+    {{ ta('net_notes', 'Other networking notes', s) }}
+  </div>
+</section>
+
+<section class="card" id="s6">
+  <h2>6 · Bespoke requirements &amp; compliance</h2>
+  <div class="fgrid">
+    {{ ta('bespoke', 'Bespoke requirements (anything outside the standard VPS / backup catalogue)', s, rows=5, ph='Describe the architecture, special hardware, HA/clustering, custom SLAs, integration with existing Melita services…') }}
+    {{ ta('compliance', 'Compliance / regulatory requirements', s, cls='span2', ph='GDPR, MFSA, ISO 27001, PCI DSS…') }}
+    {{ ta('data_residency', 'Data residency constraints', s, cls='span2', ph='e.g. data must remain in Malta') }}
+  </div>
+</section>
+
+<section class="card" id="s7">
+  <h2>7 · Access &amp; handover</h2>
+  <div class="fgrid">
+    {{ ta('portal_users', 'Customer users needing portal / console access (name, email, role)', s, cls='span2', rows=4) }}
+    {{ sel('handover_method', 'Credential handover method', s, ['Secure portal invitation','Encrypted email + SMS password','In person / call'], cls='span2') }}
+    {{ ta('go_live_dependencies', 'Go-live dependencies / deadlines', s, cls='span2', rows=2) }}
+  </div>
+</section>
+
+<section class="card" id="s8">
+  <h2>8 · Commercials</h2>
+  <div class="fgrid">
+    {{ f('agreed_mrc', 'Agreed monthly recurring (' ~ CURRENCY ~ ')', s, type='number') }}
+    {{ f('agreed_otc', 'Agreed one-off (' ~ CURRENCY ~ ')', s, type='number') }}
+    {{ f('pricing_ref', 'Quote / pricing approval ref.', s, cls='span2') }}
+  </div>
+</section>
+
+<div class="sticky-actions">
+  <a class="btn ghost" href="{{ url_for('deal_view', deal_id=d.id) }}">Cancel</a>
+  <button class="btn" name="action" value="save">Save draft</button>
+  <button class="btn primary" name="action" value="submit" data-confirm="Submit to the technical team? The deal will be marked as won and the sheet locked while under review.">Submit to technical team →</button>
+</div>
+</form>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}{% from "_macros.html" import stage_pill, svc, prob, progress, csrf %}
+{% block title %}{{ d.customer }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="crumb"><a href="{{ url_for('dashboard') }}">Dashboard</a> / <span class="mono">{{ ref(d) }}</span></p>
+    <h1>{{ d.customer }} {{ stage_pill(d.stage) }}</h1>
+    <p class="muted">{{ d.title or '' }}</p>
+  </div>
+  <div class="actions">
+    {% if can('edit_deal') and d.stage in ('presales','lost') %}<a class="btn ghost" href="{{ url_for('deal_edit', deal_id=d.id) }}">Edit lead</a>{% endif %}
+    {% if sheet %}<a class="btn ghost" href="{{ url_for('sheet_view', deal_id=d.id) }}">View technical sheet</a>{% endif %}
+  </div>
+</div>
+
+<ol class="stepper">
+  {% set idx = (STAGES|map(attribute=0)|list).index(d.stage) if d.stage != 'lost' else -1 %}
+  {% for k, l in STAGES %}
+  <li class="{{ 'done' if loop.index0 < idx }} {{ 'cur' if loop.index0 == idx }}"><span>{{ loop.index }}</span>{{ l }}</li>
+  {% endfor %}
+</ol>
+
+{# ---------- Next action panel ---------- #}
+<section class="card next">
+  {% if d.stage == 'presales' %}
+    <h2>Next action: confirm the deal</h2>
+    {% if sheet and sheet.status == 'changes_requested' %}
+      <div class="flash error">Technical team requested changes: {{ sheet.review_notes }}</div>
+    {% endif %}
+    <p>When the customer confirms, complete the <strong>technical onboarding sheet</strong>. Submitting it marks the deal as won (100%) and sends it to the technical team for review.</p>
+    <div class="actions">
+      {% if can('fill_sheet') %}<a class="btn primary" href="{{ url_for('sheet_edit', deal_id=d.id) }}">{{ 'Continue' if sheet else 'Deal confirmed – start' }} onboarding sheet</a>{% endif %}
+      {% if can('edit_deal') %}
+      <details class="inline"><summary class="btn ghost">Mark as lost</summary>
+        <form method="post" action="{{ url_for('deal_lost', deal_id=d.id) }}" class="row">{{ csrf() }}<input name="reason" placeholder="Reason (price, competitor, timing…)" required><button class="btn danger sm">Confirm lost</button></form>
+      </details>{% endif %}
+    </div>
+  {% elif d.stage == 'tech_review' %}
+    <h2>Next action: technical review</h2>
+    {% if sheet.status == 'submitted' %}
+      <p>The onboarding sheet (v{{ sheet.version }}) is with the technical team. They approve it to start onboarding, or send it back to sales with comments.</p>
+      {% if can('review') %}<a class="btn primary" href="{{ url_for('sheet_view', deal_id=d.id) }}#review">Review sheet</a>{% endif %}
+    {% else %}
+      <div class="flash error">Changes requested by technical team: {{ sheet.review_notes }}</div>
+      {% if can('fill_sheet') %}<a class="btn primary" href="{{ url_for('sheet_edit', deal_id=d.id) }}">Update and resubmit sheet</a>{% endif %}
+    {% endif %}
+  {% elif d.stage in ('onboarding','finalization','networking') %}
+    {% set nxt = {'onboarding':'Finalization','finalization':'Networking Call','networking':'Live'}[d.stage] %}
+    <h2>Next action: {{ {'onboarding':'provision the service','finalization':'hand over to the client and confirm they are connected','networking':'hold the networking call and sign off'}[d.stage] }}</h2>
+    <p>{{ open_tasks|length }} open checklist item(s) for {{ STAGE_LABEL[d.stage] }}. When all are ticked, move the deal to <strong>{{ nxt }}</strong>.</p>
+    {% if can('delivery') %}
+    <form method="post" action="{{ url_for('deal_advance', deal_id=d.id) }}" class="row wrap-row">{{ csrf() }}
+      {% if d.stage == 'finalization' %}<label class="inline-l">Networking call date/time <input type="datetime-local" name="networking_call_at" value="{{ d.networking_call_at or '' }}"></label>{% endif %}
+      {% if d.stage == 'networking' %}<label class="inline-l grow">Networking outcome notes <input name="networking_notes" value="{{ d.networking_notes or '' }}" placeholder="VPN up, routes tested, client signed off…"></label>{% endif %}
+      <button class="btn primary" {{ 'disabled' if open_tasks and g.user.role != 'admin' }}>Move to {{ nxt }} →</button>
+      {% if open_tasks and g.user.role == 'admin' %}<label class="check small"><input type="checkbox" name="force" value="1"> Admin override (skip open items)</label>{% endif %}
+    </form>
+    {% endif %}
+  {% elif d.stage == 'live' %}
+    <h2>Service live</h2><p>Onboarding and networking are complete. Any further changes go through normal support.</p>
+  {% elif d.stage == 'lost' %}
+    <h2>Lost</h2><p>Reason: {{ d.lost_reason }}</p>
+    {% if can('edit_deal') %}<form method="post" action="{{ url_for('deal_lost', deal_id=d.id) }}">{{ csrf() }}<button class="btn">Re-open lead</button></form>{% endif %}
+  {% endif %}
+</section>
+
+<div class="grid2 wide-left">
+  <div>
+    <section class="card">
+      <h2>Deal summary</h2>
+      <dl class="dl">
+        <dt>Service</dt><dd>{{ svc(d.service_type) }}</dd>
+        <dt>Partner</dt><dd>{{ d.partner }}</dd>
+        <dt>Owner</dt><dd>{{ d.owner_name or '—' }}</dd>
+        <dt>Probability</dt><dd>{{ prob(d.probability) }}</dd>
+        <dt>Monthly recurring</dt><dd>{{ d.value_mrc|money }}</dd>
+        <dt>One-off</dt><dd>{{ d.value_otc|money }}</dd>
+        <dt>Term</dt><dd>{{ d.term_months }} months</dd>
+        <dt>Total contract value</dt><dd><strong>{{ tcv(d)|money }}</strong> <small class="muted">({{ (tcv(d)*d.probability/100)|money }} weighted)</small></dd>
+        <dt>Expected close</dt><dd>{{ d.expected_close|dt if d.expected_close else '—' }}</dd>
+        <dt>Lead source</dt><dd>{{ d.lead_source or '—' }}</dd>
+        <dt>Contact</dt><dd>{{ d.contact_name or '—' }}{% if d.contact_email %}<br><a href="mailto:{{ d.contact_email }}">{{ d.contact_email }}</a>{% endif %}{% if d.contact_phone %}<br>{{ d.contact_phone }}{% endif %}</dd>
+        <dt>Next step</dt><dd>{{ d.next_step or '—' }}</dd>
+        <dt>In this stage</dt><dd>{{ d.stage_changed_at|days_since }} days (since {{ d.stage_changed_at|dt }})</dd>
+      </dl>
+      {% if d.notes %}<h3>Notes</h3><p class="pre">{{ d.notes }}</p>{% endif %}
+    </section>
+
+    {% if d.stage in ('finalization','networking','live') or d.networking_call_at %}
+    <section class="card">
+      <h2>Networking call</h2>
+      <form method="post" action="{{ url_for('deal_networking', deal_id=d.id) }}" class="fgrid">{{ csrf() }}
+        <label>Date / time<input type="datetime-local" name="networking_call_at" value="{{ d.networking_call_at or '' }}" {{ 'disabled' if not (can('delivery') or can('edit_deal')) }}></label>
+        <label class="span3">Notes<input name="networking_notes" value="{{ d.networking_notes or '' }}" {{ 'disabled' if not (can('delivery') or can('edit_deal')) }}></label>
+        {% if can('delivery') or can('edit_deal') %}<div class="span4"><button class="btn sm">Save networking details</button></div>{% endif %}
+      </form>
+    </section>
+    {% endif %}
+
+    {% if grouped|selectattr(2)|list %}
+    <section class="card" id="checklist">
+      <h2>Onboarding checklist</h2>
+      {% for key, label, ts in grouped if ts %}
+        {% set dn = ts|selectattr('done')|list|length %}
+        <h3>{{ label }} {{ progress(dn, ts|length) }}</h3>
+        <ul class="checklist">
+        {% for t in ts %}
+          <li class="{{ 'done' if t.done }}">
+            {% if can('delivery') and d.stage == key %}
+            <form method="post" action="{{ url_for('task_toggle', task_id=t.id) }}">{{ csrf() }}<button class="tick" aria-label="Toggle">{{ '✓' if t.done else '' }}</button></form>
+            {% else %}<span class="tick ro">{{ '✓' if t.done else '' }}</span>{% endif %}
+            <span>{{ t.title }}{% if t.done %}<small class="muted"> — {{ t.done_by_name }}, {{ t.done_at|dt }}</small>{% endif %}</span>
+          </li>
+        {% endfor %}
+        </ul>
+        {% if can('delivery') and d.stage == key %}
+        <form method="post" action="{{ url_for('task_add', deal_id=d.id) }}" class="row">{{ csrf() }}<input name="title" placeholder="Add a checklist item for this deal…" required><button class="btn sm">Add</button></form>
+        {% endif %}
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+
+  <section class="card" id="activity">
+    <h2>Activity &amp; comments</h2>
+    {% if can('comment') %}
+    <form method="post" action="{{ url_for('deal_comment', deal_id=d.id) }}" class="stack">{{ csrf() }}
+      <textarea name="message" rows="3" placeholder="Add an update, question or additional information…" required></textarea>
+      <button class="btn sm">Post</button>
+    </form>
+    {% endif %}
+    <ul class="timeline">
+      {% for a in acts %}
+      <li class="k-{{ a.kind }}"><div><strong>{{ a.user_name or 'System' }}</strong> <small class="muted">{{ a.created_at|dt }}</small></div><p class="pre">{{ a.message }}</p></li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% from "_macros.html" import svc, prob, progress %}
+{% block title %}Pipeline board{% endblock %}{% block mainclass %}wrap wide{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Pipeline board</h1><p class="muted">Every active deal by stage. Open a card to move it forward.</p></div>
+{% if can('edit_deal') %}<a class="btn primary" href="{{ url_for('deal_new') }}">+ New lead</a>{% endif %}</div>
+<div class="board">
+{% for key, label, ds in cols %}
+  <section class="col st-{{ key }}">
+    <header><h2>{{ label }}</h2><span>{{ ds|length }}</span></header>
+    <small class="col-sum">{{ ds|sum(attribute='value_mrc')|money }}/mo</small>
+    {% for d in ds %}
+    <a class="kcard" href="{{ url_for('deal_view', deal_id=d.id) }}">
+      <strong>{{ d.customer }}</strong>
+      <small class="muted">{{ ref(d) }} · {{ d.partner }}</small>
+      <div class="kmeta">{{ svc(d.service_type) }} <b>{{ tcv(d)|money }}</b></div>
+      {% if key == 'presales' %}{{ prob(d.probability) }}
+      {% elif key in ('onboarding','finalization','networking') %}{{ progress(d.tasks_done, d.tasks_total) }}
+      {% elif key == 'tech_review' %}<small class="muted">Sheet {{ d.sheet_status|replace('_',' ') }}</small>{% endif %}
+      <small class="muted">{{ d.stage_changed_at|days_since }}d in stage · {{ d.owner_name or 'unassigned' }}</small>
+    </a>
+    {% else %}<p class="empty small">No deals</p>{% endfor %}
+  </section>
+{% endfor %}
+</div>
+{% endblock %}

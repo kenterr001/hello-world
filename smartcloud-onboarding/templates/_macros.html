@@ -1,0 +1,5 @@
+{% macro stage_pill(stage) -%}<span class="pill st-{{ stage }}">{{ STAGE_LABEL[stage] }}</span>{%- endmacro %}
+{% macro svc(service) -%}<span class="svc svc-{{ service|slug }}">{{ service }}</span>{%- endmacro %}
+{% macro prob(p) -%}<span class="prob" title="{{ p }}% probability"><span class="prob-bar"><i style="width:{{ p }}%" class="{{ 'hi' if p>=70 else ('mid' if p>=40 else 'lo') }}"></i></span><b>{{ p }}%</b></span>{%- endmacro %}
+{% macro progress(done, total) -%}{% if total %}<span class="prog" title="{{ done }} of {{ total }} checklist items"><span class="prog-bar"><i style="width:{{ (100*done/total)|round|int }}%"></i></span><small>{{ done }}/{{ total }}</small></span>{% else %}<span class="muted small">—</span>{% endif %}{%- endmacro %}
+{% macro csrf() -%}<input type="hidden" name="_csrf" value="{{ csrf_token() }}">{%- endmacro %}

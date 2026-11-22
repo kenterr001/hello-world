@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% from "_macros.html" import svc %}
+{% block title %}Technical review{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Technical review queue</h1><p class="muted">Onboarding sheets submitted by sales, oldest first.</p></div></div>
+<section class="card"><div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Ref</th><th>Customer</th><th>Service</th><th>Owner</th><th>Submitted</th><th>Waiting</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr><td class="mono">{{ ref(r) }}</td><td><strong>{{ r.customer }}</strong><br><small class="muted">{{ r.partner }}</small></td><td>{{ svc(r.service_type) }}</td><td>{{ r.owner_name or '—' }}</td>
+    <td>{{ r.submitted_at|dt }} <small class="muted">v{{ r.version }}</small></td><td>{% set w = r.submitted_at|days_since %}<span class="{{ 'warn' if w > 2 }}">{{ w }}d</span></td>
+    <td><span class="pill sh-{{ r.sheet_status }}">{{ r.sheet_status|replace('_',' ')|title }}</span></td>
+    <td class="r"><a class="btn sm {{ 'primary' if r.sheet_status=='submitted' }}" href="{{ url_for('sheet_view', deal_id=r.id) }}#review">Open sheet</a></td></tr>
+  {% else %}<tr><td colspan="8" class="empty">Nothing waiting for review.</td></tr>{% endfor %}
+  </tbody></table></div></section>
+{% endblock %}

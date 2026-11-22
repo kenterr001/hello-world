@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf %}
+{% block title %}Catalogue{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Product catalogue &amp; checklists</h1>
+<p class="muted">Drives the drop-downs on the lead form and onboarding sheet, and the onboarding / finalization / networking checklists. Update the VPS packages, operating systems and backup products so they match what is published on Smart Cloud and the Melita Business cloud hosting page. Changes apply to new sheets and new checklists; existing records are not altered.</p></div></div>
+<form method="post" class="card">{{ csrf() }}
+  <textarea name="catalogue" rows="34" class="mono code" spellcheck="false">{{ raw }}</textarea>
+  <div class="form-actions"><button class="btn primary">Save catalogue</button></div>
+</form>
+{% endblock %}

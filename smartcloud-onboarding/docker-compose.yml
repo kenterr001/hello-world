@@ -1,0 +1,11 @@
+services:
+  portal:
+    build: .
+    container_name: smartcloud-portal
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/data
+    # Only reachable from the VPS itself; nginx publishes it over HTTPS.
+    ports:
+      - "127.0.0.1:8000:8000"

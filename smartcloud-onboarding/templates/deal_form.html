@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf %}
+{% block title %}{{ 'New lead' if new else 'Edit ' ~ d.customer }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ 'New lead' if new else 'Edit lead' }}</h1><p class="muted">Sales opportunity details. Value and probability feed the dashboard.</p></div></div>
+<form method="post" class="card form">
+  {{ csrf() }}
+  <h2>Customer</h2>
+  <div class="fgrid">
+    <label class="span2">Customer / company name *<input name="customer" value="{{ d.customer or '' }}" required></label>
+    <label class="span2">Opportunity title<input name="title" value="{{ d.title or '' }}" placeholder="e.g. Move ERP to cloud"></label>
+    <label>Contact name<input name="contact_name" value="{{ d.contact_name or '' }}"></label>
+    <label>Contact email<input type="email" name="contact_email" value="{{ d.contact_email or '' }}"></label>
+    <label>Contact phone<input name="contact_phone" value="{{ d.contact_phone or '' }}"></label>
+    <label>Lead source<select name="lead_source"><option value="">—</option>{% for s in cat.lead_sources %}<option {{ 'selected' if d.lead_source==s }}>{{ s }}</option>{% endfor %}</select></label>
+  </div>
+  <h2>Opportunity</h2>
+  <div class="fgrid">
+    <label>Service type *<select name="service_type" required><option value="">Select…</option>{% for s in cat.service_types %}<option {{ 'selected' if d.service_type==s }}>{{ s }}</option>{% endfor %}</select></label>
+    <label>Originating partner *<select name="partner" required><option value="">Select…</option>{% for p in cat.partners %}<option {{ 'selected' if d.partner==p }}>{{ p }}</option>{% endfor %}</select></label>
+    <label>Deal owner<select name="owner_id"><option value="">Unassigned</option>{% for u in users %}<option value="{{ u.id }}" {{ 'selected' if d.owner_id|string==u.id|string }}>{{ u.name }} ({{ u.company }})</option>{% endfor %}</select></label>
+    <label>Expected close<input type="date" name="expected_close" value="{{ d.expected_close or '' }}"></label>
+    <label class="span2">Probability: <output id="probOut">{{ d.probability or 0 }}</output>%
+      <input type="range" name="probability" min="0" max="100" step="5" value="{{ d.probability or 0 }}" data-out="probOut"></label>
+    <label>Monthly recurring ({{ CURRENCY }}) *<input type="number" name="value_mrc" min="0" step="0.01" value="{{ d.value_mrc or 0 }}" data-calc></label>
+    <label>One-off / setup ({{ CURRENCY }})<input type="number" name="value_otc" min="0" step="0.01" value="{{ d.value_otc or 0 }}" data-calc></label>
+    <label>Contract term (months)<select name="term_months" data-calc>{% for t in cat.contract_terms %}<option value="{{ t }}" {{ 'selected' if (d.term_months or 12)|int==t }}>{{ t }}</option>{% endfor %}</select></label>
+    <div class="calc"><span>Total contract value</span><strong id="tcvOut">—</strong><small id="wOut"></small></div>
+  </div>
+  <h2>Additional information</h2>
+  <div class="fgrid">
+    <label class="span4">Next step<input name="next_step" value="{{ d.next_step or '' }}" placeholder="e.g. Send revised proposal by Friday"></label>
+    <label class="span4">Notes<textarea name="notes" rows="5" placeholder="Requirements heard so far, competitors, decision makers, budget…">{{ d.notes or '' }}</textarea></label>
+  </div>
+  <div class="form-actions">
+    <a class="btn ghost" href="{{ url_for('dashboard') if new else url_for('deal_view', deal_id=d.id) }}">Cancel</a>
+    <button class="btn primary">{{ 'Create lead' if new else 'Save changes' }}</button>
+  </div>
+</form>
+{% endblock %}
